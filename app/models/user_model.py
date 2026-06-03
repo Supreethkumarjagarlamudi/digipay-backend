@@ -24,6 +24,26 @@ class User(Base):
         nullable=False
     )
 
+    role = Column(
+        String(20),
+        default="customer"
+    )
+
+    full_name = Column(
+        String(100),
+        nullable=True
+    )
+
+    email = Column(
+        String(100),
+        nullable=True
+    )
+
+    profile_completed = Column(
+        Boolean,
+        default=False
+    )
+
     is_verified = Column(
         Boolean,
         default=False
