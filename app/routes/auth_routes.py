@@ -44,7 +44,7 @@ def send_otp(
 
     return {
         "message": "OTP Sent Successfully",
-        "sms_response": otp
+        "otp": otp
     }
 
 # VERIFY OTP
