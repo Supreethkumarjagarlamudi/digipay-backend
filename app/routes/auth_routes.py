@@ -4,7 +4,6 @@ from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
 
-from sqlalchemy import false
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -105,6 +104,6 @@ def verify_otp(
             "id": user.id,
             "phone_number": user.phone_number
         },
-        "role": "customer",
-        "profile_completed": False
+        "role": user.role,
+        "profile_completed": user.profile_completed
     }
