@@ -7,6 +7,13 @@ from app.models.user_model import User
 from app.schemas.merchant_schema import (
     MerchantRegistrationRequest
 )
+from app.utils.location_utils import (
+    calculate_distance
+)
+
+from app.utils.ranking_engine import (
+    calculate_rank_score
+)
 
 from app.utils.auth_dependency import (
     get_current_user
@@ -26,8 +33,20 @@ def register_merchant(
 
     current_user: User = Depends(
         get_current_user
-    )
-):
+        )
+    ):
+
+    existing_merchant = db.query(
+        Merchant
+    ).filter(
+        Merchant.user_id ==
+        current_user.id
+    ).first()
+    if existing_merchant:
+        return {
+            "message":
+            "Merchant already registered"
+        }
 
     merchant = Merchant(
 
@@ -71,31 +90,133 @@ def register_merchant(
     )
 
     db.add(merchant)
-
     current_user.role = "merchant"
-
     current_user.profile_completed = True
-
     db.commit()
+    return {
+        "message":
+        "Merchant Registered Successfully"
+    }
+@router.get("/nearby")
 
-    existing_merchant = db.query(
+def get_nearby_merchants(
+    latitude: float,
+    longitude: float,
+    db: Session = Depends(get_db)
+):
 
+    merchants = db.query(
         Merchant
+    ).all()
+    results = []
+    for merchant in merchants:
+        distance = calculate_distance(
+            latitude,
+            longitude,
+            merchant.latitude,
+            merchant.longitude
+        )
 
-    ).filter(
+        results.append({
+            "id":
+                merchant.id,
+            "business_name":
+                merchant.business_name,
+            "category":
+                merchant.category,
+            "latitude":
+                merchant.latitude,
+            "longitude":
+                merchant.longitude,
+            "upi_deep_link":
+                merchant.upi_deep_link,
+            "distance":
+                round(
+                    distance,
+                    2
+                )
+        })
 
-        Merchant.user_id ==
+    results.sort(
 
-        current_user.id
+        key=lambda x:
 
-    ).first()
+        x["distance"]
 
-    if existing_merchant:
+    )
 
-        return {
+    return results
 
-            "message":
+@router.get("/recommendations")
 
-            "Merchant already registered"
+def get_recommendations(
 
-        }
+    latitude: float,
+
+    longitude: float,
+
+    heading: float,
+
+    speed: float,
+
+    db: Session = Depends(get_db)
+
+):
+    merchants = db.query(
+        Merchant
+    ).all()
+
+    results = []
+
+    for merchant in merchants:
+        distance = calculate_distance(
+
+            latitude,
+            longitude,
+
+            merchant.latitude,
+            merchant.longitude
+        )
+        score = calculate_rank_score(
+
+            distance=
+                distance,
+
+            customer_heading=
+                heading,
+
+            merchant_heading=
+                merchant.heading,
+
+            customer_speed=
+                speed,
+
+            category=
+                merchant.category
+        )
+        results.append({
+
+            "id":
+                merchant.id,
+
+            "business_name":
+                merchant.business_name,
+
+            "category":
+                merchant.category,
+
+            "distance":
+                round(distance, 2),
+
+            "score":
+                score,
+
+            "upi_deep_link":
+                merchant.upi_deep_link
+        })
+    results.sort(
+        key=lambda merchant:
+        merchant["score"],
+        reverse=True
+    )
+    return results
