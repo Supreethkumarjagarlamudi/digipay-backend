@@ -106,5 +106,5 @@ def verify_otp(
             "phone_number": user.phone_number
         },
         "role": "customer",
-        "profile_completed": false
+        "profile_completed": False
     }
