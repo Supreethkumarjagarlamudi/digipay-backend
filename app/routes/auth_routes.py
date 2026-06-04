@@ -55,55 +55,61 @@ def verify_otp(
     db: Session = Depends(get_db)
 ):
 
-    otp_entry = db.query(
+    try:
+        otp_entry = db.query(
         OTPVerification
-    ).filter(
-        OTPVerification.phone_number == payload.phone_number,
-        OTPVerification.otp_code == payload.otp_code,
-        OTPVerification.verified == False
-    ).first()
+        ).filter(
+            OTPVerification.phone_number == payload.phone_number,
+            OTPVerification.otp_code == payload.otp_code,
+            OTPVerification.verified == False
+        ).first()
 
-    if not otp_entry:
+        if not otp_entry:
 
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid OTP"
-        )
-    if datetime.utcnow() - otp_entry.created_at > timedelta(minutes=5):
-        raise HTTPException(
-            status_code=400,
-            detail="OTP Expired"
-        )
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid OTP"
+            )
+        if datetime.utcnow() - otp_entry.created_at > timedelta(minutes=5):
+            raise HTTPException(
+                status_code=400,
+                detail="OTP Expired"
+            )
 
-    otp_entry.verified = True
+        otp_entry.verified = True
 
-    user = db.query(User).filter(
-        User.phone_number == payload.phone_number
-    ).first()
+        user = db.query(User).filter(
+            User.phone_number == payload.phone_number
+        ).first()
 
-    if not user:
-        user = User(
-            phone_number=payload.phone_number,
-            is_verified=True
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-    else:
+        if not user:
+            user = User(
+                phone_number=payload.phone_number,
+                is_verified=True
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        else:
 
-        db.commit()
-    access_token = create_access_token({
-        "user_id": user.id,
-        "phone_number": user.phone_number
-    })
-    return {
-        "message": "OTP Verified Successfully",
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": {
-            "id": user.id,
+            db.commit()
+        access_token = create_access_token({
+            "user_id": user.id,
             "phone_number": user.phone_number
-        },
-        "role": user.role,
-        "profile_completed": user.profile_completed
-    }
+        })
+        return {
+            "message": "OTP Verified Successfully",
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "id": user.id,
+                "phone_number": user.phone_number
+            },
+            "role": user.role,
+            "profile_completed": user.profile_completed
+        }
+    except Exception as e:
+        print("VERIFY OTP ERROR:")
+        print(type(e))
+        print(str(e))
+        raise
