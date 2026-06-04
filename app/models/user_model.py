@@ -26,7 +26,7 @@ class User(Base):
 
     role = Column(
         String(20),
-        default="customer"
+        default="merchant"
     )
 
     full_name = Column(
