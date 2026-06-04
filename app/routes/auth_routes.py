@@ -110,6 +110,7 @@ def verify_otp(
         }
     except Exception as e:
         print("VERIFY OTP ERROR:")
-        print(type(e))
-        print(str(e))
-        raise
+        return {
+            "message": "An error occurred during OTP verification",
+            "error": str(e)
+        }
