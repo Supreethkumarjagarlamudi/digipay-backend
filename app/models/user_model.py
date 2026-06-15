@@ -3,6 +3,7 @@ from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Boolean
 from sqlalchemy import DateTime
+from sqlalchemy import Float
 
 from datetime import datetime
 
@@ -47,6 +48,16 @@ class User(Base):
     is_verified = Column(
         Boolean,
         default=False
+    )
+
+    monthly_budget = Column(
+        Float,
+        default=15000.0
+    )
+
+    monthly_income = Column(
+        Float,
+        default=45000.0
     )
 
     created_at = Column(

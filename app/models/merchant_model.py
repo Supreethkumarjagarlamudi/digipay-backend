@@ -1,4 +1,4 @@
-from sqlalchemy import Column
+from sqlalchemy import Column, Boolean
 from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Float
@@ -62,6 +62,11 @@ class Merchant(Base):
 
     upi_deep_link = Column(
         String(1000)
+    )
+
+    is_active = Column(
+        Boolean,
+        default=True
     )
 
     created_at = Column(
