@@ -28,3 +28,13 @@ class MerchantRegistrationRequest(
     speed: float
 
     upi_deep_link: str
+
+class MerchantUpdateRequest(BaseModel):
+    business_name: str
+    owner_name: str
+    category: str
+    gst_number: str | None = None
+    description: str | None = None
+    latitude: float
+    longitude: float
+    upi_deep_link: str
