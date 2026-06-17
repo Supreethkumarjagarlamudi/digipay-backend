@@ -8,20 +8,19 @@ def calculate_rank_score(
     category
 ):
     score = 0.0
+    category_lower = category.lower() if category else "other"
 
-    # 1. DISTANCE (55%) - Proximity is the absolute strongest indicator
-    if distance < 0.02:    # Inside/very close (20m)
-        score += 55.0
-    elif distance < 0.05:  # Within 50m
-        score += 48.0
-    elif distance < 0.1:   # Within 100m
-        score += 40.0
+    # 1. DISTANCE (65%) - Proximity is the absolute strongest indicator
+    if distance < 0.05:    # Inside/very close (50m)
+        score += 65.0
+    elif distance < 0.15:  # Within 150m
+        score += 60.0
     elif distance < 0.3:   # Within 300m
-        score += 30.0
+        score += 50.0
     elif distance < 0.8:   # Within 800m
-        score += 20.0
+        score += 35.0
     else:                  # Further away
-        score += 10.0
+        score += 15.0
 
     # 2. DIRECTION (20%) - Heading diff matters only when user is actually moving
     if customer_speed > 1.0:
@@ -35,39 +34,41 @@ def calculate_rank_score(
         # Stationary user: don't penalize for heading since GPS compass is noisy when still
         score += 20.0
 
-    # 3. SPEED CONTEXT (10%)
+    # 3. SPEED CONTEXT (10%) - Lenient category recognition
+    # All standard categories are supported dynamically
+    valid_categories = ["cafe", "restaurant", "food", "grocery", "clothing", "salon", "retail", "stationery", "other", "electronics", "medical", "shopping", "entertainment", "bills"]
+    
     if customer_speed < 2.0:
-        # User is stationary/walking: Cafe, Restaurant, Grocery, Clothing, Salon, Retail, Stationery
-        if category in ["Cafe", "Restaurant", "Grocery", "Clothing", "Salon", "Retail", "Stationery", "Other", "Restaurant", "Grocery"]:
+        # Walking speed
+        if category_lower in valid_categories:
             score += 10.0
     else:
-        # User is moving fast: Medical, Grocery, Electronics
-        if category in ["Medical", "Grocery", "Electronics", "Retail", "Other"]:
+        # In transit speed
+        if category_lower in valid_categories:
             score += 10.0
 
     # 4. TIME CONTEXT (10%)
     hour = datetime.now().hour
     
     if 6 <= hour <= 11:
-        # Morning: Cafe, Restaurant, Grocery, Medical
-        if category in ["Cafe", "Restaurant", "Grocery", "Medical"]:
+        # Morning
+        if category_lower in ["cafe", "restaurant", "food", "grocery", "medical", "retail", "other"]:
             score += 10.0
     elif 12 <= hour <= 16:
-        # Afternoon: Restaurant, Cafe, Clothing, Retail, Grocery
-        if category in ["Restaurant", "Cafe", "Clothing", "Retail", "Grocery"]:
+        # Afternoon
+        if category_lower in ["restaurant", "cafe", "food", "clothing", "retail", "grocery", "electronics", "shopping", "other"]:
             score += 10.0
     elif 17 <= hour <= 22:
-        # Evening: Restaurant, Cafe, Grocery, Clothing, Salon, Retail
-        if category in ["Restaurant", "Cafe", "Grocery", "Clothing", "Salon", "Retail"]:
+        # Evening
+        if category_lower in ["restaurant", "cafe", "food", "grocery", "clothing", "salon", "retail", "shopping", "entertainment", "other"]:
             score += 10.0
     else:
-        # Night: Medical, Restaurant, Other
-        if category in ["Medical", "Restaurant", "Other"]:
+        # Night
+        if category_lower in ["medical", "restaurant", "food", "other", "cafe"]:
             score += 10.0
 
     # 5. CATEGORY FREQUENCY BONUS (5%)
-    # Give a minor base bonus for highly frequent payment categories
-    if category in ["Restaurant", "Cafe", "Grocery", "Medical", "Retail"]:
+    if category_lower in ["restaurant", "cafe", "food", "grocery", "medical", "retail", "electronics", "shopping", "entertainment", "bills", "other"]:
         score += 5.0
     else:
         score += 2.0
