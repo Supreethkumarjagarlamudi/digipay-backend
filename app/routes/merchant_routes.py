@@ -317,3 +317,27 @@ def update_merchant(
     return {
         "message": "Merchant profile updated successfully"
     }
+
+@router.get("/payments")
+def get_merchant_payments(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    merchant = db.query(Merchant).filter(Merchant.user_id == current_user.id).first()
+    if not merchant:
+        raise HTTPException(status_code=404, detail="Merchant profile not found")
+
+    all_received = db.query(Expense).filter(
+        Expense.merchant_name == merchant.business_name
+    ).order_by(Expense.timestamp.desc()).all()
+
+    payments = []
+    for p in all_received:
+        cust = db.query(User).filter(User.id == p.user_id).first()
+        payments.append({
+            "id": p.id,
+            "amount": p.amount,
+            "timestamp": p.timestamp.isoformat(),
+            "customer_phone": cust.phone_number if cust else "Unknown"
+        })
+    return payments
