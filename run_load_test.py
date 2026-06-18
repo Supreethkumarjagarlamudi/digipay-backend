@@ -22,7 +22,9 @@ except ImportError:
 TARGET_URL = "https://web-production-86613.up.railway.app/"
 CONCURRENT_USERS = 100
 DURATION_SECONDS = 60
-OUTPUT_EXCEL = "reports/Load_Test_Report.xlsx"
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+OUTPUT_EXCEL = os.path.join(SCRIPT_DIR, "reports", "Load_Test_Report.xlsx")
 
 # Statistics trackers
 latencies = []
