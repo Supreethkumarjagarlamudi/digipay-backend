@@ -123,6 +123,34 @@ async def run_load_test():
     print(f"   • Response Time : Avg: {avg_latency:.1f}ms | Min: {min_latency:.1f}ms | Max: {max_latency:.1f}ms")
     print(f"   • Percentiles   : p50: {p50:.1f}ms | p95: {p95:.1f}ms | p99: {p99:.1f}ms")
 
+    # Post markdown summary to GitHub Actions if available
+    summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary_path:
+        success_rate = (successful_requests / total_requests * 100) if total_requests else 0
+        try:
+            with open(summary_path, "w", encoding="utf-8") as sf:
+                sf.write("# ⚡ Digipay Backend Load Test Report\n\n")
+                sf.write(f"> **Target URL:** `{TARGET_URL}`\n")
+                sf.write(f"> **Environment:** Railway Hosted Instance\n")
+                sf.write(f"> **Run Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} UTC\n\n")
+                sf.write("## 📊 Performance Summary\n\n")
+                sf.write("| Metric | Value |\n|---|---|\n")
+                sf.write(f"| 👥 Concurrent Users (VUs) | **{CONCURRENT_USERS}** |\n")
+                sf.write(f"| ⏱️ Test Duration | **{total_duration:.1f}s** |\n")
+                sf.write(f"| 🔢 Total Requests Sent | **{total_requests}** |\n")
+                sf.write(f"| ✅ Success Rate | **{success_rate:.1f}%** |\n")
+                sf.write(f"| ⚡ Average Throughput | **{avg_rps:.1f} req/sec** |\n")
+                sf.write(f"| ⏱️ Average Latency | **{avg_latency:.1f} ms** |\n")
+                sf.write(f"| ⏱️ Min Latency | **{min_latency:.1f} ms** |\n")
+                sf.write(f"| ⏱️ Max Latency | **{max_latency:.1f} ms** |\n")
+                sf.write(f"| 📊 p50 (Median) | **{p50:.1f} ms** |\n")
+                sf.write(f"| 📊 p95 | **{p95:.1f} ms** |\n")
+                sf.write(f"| 📊 p99 | **{p99:.1f} ms** |\n\n")
+                sf.write("---\n_📥 Download the full styled `.xlsx` report from the **Artifacts** section._\n")
+            print("📝 GITHUB_STEP_SUMMARY updated successfully.")
+        except Exception as e:
+            print(f"⚠️ Failed to write to GITHUB_STEP_SUMMARY: {e}")
+
     # Generate Excel Report
     generate_excel_report(total_duration, avg_rps, avg_latency, min_latency, max_latency, p50, p95, p99, rps_timeline)
 
