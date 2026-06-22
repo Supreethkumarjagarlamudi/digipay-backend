@@ -1,0 +1,61 @@
+name: 🛡️ Backend Security Review
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  security-audit:
+    name: 🔍 Run Backend SAST Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Install Scanning Dependencies
+        run: |
+          npm install
+
+      - name: 🛡️ Run Backend Security Scan
+        run: |
+          node scripts/generateSecuritySuite.js
+
+      - name: 📋 Post Summary to GHA
+        if: always()
+        run: |
+          cat executive-summary.md >> $GITHUB_STEP_SUMMARY
+          echo -e "\n---\n" >> $GITHUB_STEP_SUMMARY
+          cat security-review.md >> $GITHUB_STEP_SUMMARY
+
+      - name: 🚦 Enforce Zero-Critical Policy
+        run: |
+          CRITICAL_COUNT=$(grep -o "Critical Severity Findings: [0-9]*" executive-summary.md | awk '{print $4}')
+          HIGH_COUNT=$(grep -o "High Severity Findings: [0-9]*" executive-summary.md | awk '{print $4}')
+          if [ -z "$CRITICAL_COUNT" ]; then CRITICAL_COUNT=0; fi
+          if [ -z "$HIGH_COUNT" ]; then HIGH_COUNT=0; fi
+          echo "Critical vulnerabilities: $CRITICAL_COUNT"
+          echo "High vulnerabilities: $HIGH_COUNT"
+          if [ "$CRITICAL_COUNT" -gt 0 ] || [ "$HIGH_COUNT" -gt 0 ]; then
+            echo "❌ Zero-Critical Gate Violation: Critical/High vulnerabilities detected!"
+            exit 1
+          fi
+          echo "✅ Security Gate Passed: Zero critical or high issues found."
+
+      - name: 📤 Upload Security Report Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Digipay-Backend-Security-Findings
+          path: |
+            findings.xlsx
+            security-review.md
+            dependency-report.md
+            executive-summary.md
+          retention-days: 30
