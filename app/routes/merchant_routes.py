@@ -160,6 +160,26 @@ def get_recommendations(
     current_user: User = Depends(get_optional_current_user),
     db: Session = Depends(get_db)
 ):
+    # 1. Fetch user transaction distribution if logged in (affinity profiling)
+    user_cat_prefs = {}
+    if current_user:
+        user_expenses = db.query(Expense).filter(Expense.user_id == current_user.id).all()
+        total_user_txs = len(user_expenses)
+        if total_user_txs > 0:
+            for tx in user_expenses:
+                cat = tx.category.lower() if tx.category else "other"
+                user_cat_prefs[cat] = user_cat_prefs.get(cat, 0) + 1
+            for cat in user_cat_prefs:
+                user_cat_prefs[cat] = user_cat_prefs[cat] / total_user_txs
+
+    # 2. Get merchant transaction count for popularity index
+    all_expenses = db.query(Expense).all()
+    merchant_tx_counts = {}
+    for tx in all_expenses:
+        m_name = tx.merchant_name
+        merchant_tx_counts[m_name] = merchant_tx_counts.get(m_name, 0) + 1
+    max_tx_count = max(merchant_tx_counts.values()) if merchant_tx_counts else 1
+
     merchants = db.query(Merchant).all()
     results = []
 
@@ -170,12 +190,27 @@ def get_recommendations(
             merchant.latitude,
             merchant.longitude
         )
+        
+        # Hard distance cutoff (e.g., 15km)
+        if distance > 15.0:
+            continue
+
+        # Get category preference ratio
+        cat_lower = merchant.category.lower() if merchant.category else "other"
+        user_pref = user_cat_prefs.get(cat_lower, 0.0)
+        
+        # Get store popularity ratio
+        store_txs = merchant_tx_counts.get(merchant.business_name, 0)
+        popularity = store_txs / max_tx_count if max_tx_count > 0 else 0.0
+
         score = calculate_rank_score(
             distance=distance,
             customer_heading=heading,
             merchant_heading=merchant.heading or 0.0,
             customer_speed=speed,
-            category=merchant.category
+            category=merchant.category,
+            user_category_preference=user_pref,
+            merchant_popularity=popularity
         )
         
         has_history = False
